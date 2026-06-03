@@ -76,6 +76,15 @@ export default function TaskManager() {
 
   const del = (id) => { setTasks(tasks.filter(t => t.id !== id)); setDeleteConfirm(null); };
 
+  const resetTasks = () => {
+    if (window.confirm('Khôi phục danh sách công việc về mặc định?')) {
+      localStorage.removeItem('dashboard_tasks');
+      setTasks(defaultTasks);
+      setDeleteConfirm(null);
+      setEditId(null);
+    }
+  };
+
   const saveEdit = (id) => {
     if (!editTitle.trim()) return;
     setTasks(tasks.map(t => t.id === id ? { ...t, title: editTitle } : t));
@@ -123,9 +132,12 @@ export default function TaskManager() {
       </div>
 
       {/* Add form toggle */}
-      <div style={{ marginBottom: '16px' }}>
-        <button style={S.btn('#4299e1')} onClick={() => setShowForm(!showForm)}>
+      <div style={{ marginBottom: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <button type="button" style={S.btn('#4299e1')} onClick={() => setShowForm(!showForm)}>
           {showForm ? '✕ Đóng' : '+ Thêm công việc'}
+        </button>
+        <button type="button" style={S.btn('#e2e8f0', '#4a5568')} onClick={resetTasks}>
+          Khôi phục mặc định
         </button>
       </div>
 

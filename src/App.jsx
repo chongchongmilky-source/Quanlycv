@@ -2,13 +2,13 @@ import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { renderIcon, removeLeadingEmoji } from './utils/helpers.jsx';
 
-// Import các component cố định
-import HomePage from './components/HomePage';
-import TaskManager from './components/TaskManager';
-import BugManager from './components/BugManager';
-import ProjectManager from './components/ProjectManager';
-import SettingsPage from './components/SettingsPage';
-import PageManager from './components/PageManager';
+const HomePage = lazy(() => import('./components/HomePage.jsx'));
+const TaskManager = lazy(() => import('./components/TaskManager.jsx'));
+const BugManager = lazy(() => import('./components/BugManager.jsx'));
+const ProjectManager = lazy(() => import('./components/ProjectManager.jsx'));
+const SettingsPage = lazy(() => import('./components/SettingsPage.jsx'));
+const PageManager = lazy(() => import('./components/PageManager.jsx'));
+const SpacedRepetitionApp = lazy(() => import('./components/SpacedRepetition/index.jsx'));
 
 // Component fallback khi đang load
 const LoadingComponent = () => (
@@ -343,28 +343,27 @@ const MainLayout = ({ pages, setPages }) => {
     closeSidebar();
   }, [location.pathname]);
 
-  // Hàm dynamic import component
-  const getComponentForPage = (page) => {
-    // Các component cố định
-    const fixedComponents = {
-      'Home': HomePage,
-      'Settings': SettingsPage,
-      'Manager': PageManager,
-      'Tasks': TaskManager,
-      'Bugs': BugManager,
-      'Projects': ProjectManager
-    };
+    // Hàm dynamic import component
+    const getComponentForPage = (page) => {
+      // Các component cố định
+      const fixedComponents = {
+        'Home': HomePage,
+        'Settings': SettingsPage,
+        'Manager': PageManager,
+        'Tasks': TaskManager,
+        'Bugs': BugManager,
+        'Projects': ProjectManager,
+        'SpacedRepetition': SpacedRepetitionApp,
+      };
 
-    // Nếu là component cố định, return ngay
-    if (fixedComponents[page.type]) {
-      return fixedComponents[page.type];
-    }
+      // Nếu là component cố định, return ngay
+      if (fixedComponents[page.type]) {
+        return fixedComponents[page.type];
+      }
 
-    // Nếu có componentName, thử dynamic import
-    if (page.componentName) {
-      try {
-        // Dynamic import với React.lazy
-        return lazy(() => 
+      // Nếu có componentName, thử dynamic import
+      if (page.componentName) {
+        return lazy(() =>
           import(`./components/${page.componentName}.jsx`)
             .then(module => ({ default: module.default }))
             .catch(() => {
@@ -372,15 +371,11 @@ const MainLayout = ({ pages, setPages }) => {
               return { default: () => <GenericPage page={page} /> };
             })
         );
-      } catch (error) {
-        console.error(`Error loading component ${page.componentName}:`, error);
-        return () => <GenericPage page={page} />;
       }
-    }
 
-    // Fallback: Generic page
-    return () => <GenericPage page={page} />;
-  };
+      // Fallback: Generic page
+      return () => <GenericPage page={page} />;
+    };
 
   const currentPage = pages.find(p => p.path === location.pathname);
   const CurrentComponent = currentPage ? getComponentForPage(currentPage) : null;
@@ -451,7 +446,7 @@ const MainLayout = ({ pages, setPages }) => {
                     path={page.path} 
                     element={
                       <Suspense fallback={<LoadingComponent />}>
-                        <PageComponent />
+                        <PageComponent pages={pages} setPages={setPages} />
                       </Suspense>
                     } 
                   />
@@ -480,15 +475,37 @@ function App() {
     { id: '4', name: 'Quản lý Dự án', path: '/projects', type: 'Projects' },
     { id: '5', name: 'Cài đặt', path: '/settings', type: 'Settings' },
     { id: '6', name: 'Quản lý Cấu trúc Trang', path: '/manager', type: 'Manager' },
+    { id: '7', name: 'Learn', path: '/spaced-repetition', type: 'SpacedRepetition' },
   ];
+
+  const ensureLearnPage = (pagesList) => {
+    const normalized = pagesList.map((p) => ({
+      ...p,
+      name: p.type === 'SpacedRepetition' ? 'Learn' : removeLeadingEmoji(p.name),
+    }));
+
+    if (!normalized.some((p) => p.type === 'SpacedRepetition' || p.path === '/spaced-repetition')) {
+      normalized.push(defaultPages[6]);
+    }
+
+    return normalized;
+  };
 
   const [pages, setPages] = useState(() => {
     const saved = localStorage.getItem('dashboard_pages');
-    let loaded = saved ? JSON.parse(saved) : defaultPages;
-    const cleaned = loaded.map(p => ({ ...p, name: removeLeadingEmoji(p.name) }));
+    const loaded = saved ? JSON.parse(saved) : defaultPages;
+    const cleaned = ensureLearnPage(loaded);
     localStorage.setItem('dashboard_pages', JSON.stringify(cleaned));
     return cleaned;
   });
+
+  useEffect(() => {
+    setPages((currentPages) => {
+      const cleaned = ensureLearnPage(currentPages);
+      localStorage.setItem('dashboard_pages', JSON.stringify(cleaned));
+      return cleaned;
+    });
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('dashboard_pages', JSON.stringify(pages));

@@ -2,6 +2,16 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { removeLeadingEmoji } from '../utils/helpers.jsx';
 
+const defaultPages = [
+  { id: '1', name: 'Trang chủ', path: '/', type: 'Home' },
+  { id: '2', name: 'Quản lý Công việc', path: '/tasks', type: 'Tasks' },
+  { id: '3', name: 'Quản lý Lỗi', path: '/bugs', type: 'Bugs' },
+  { id: '4', name: 'Quản lý Dự án', path: '/projects', type: 'Projects' },
+  { id: '5', name: 'Cài đặt', path: '/settings', type: 'Settings' },
+  { id: '6', name: 'Quản lý Cấu trúc Trang', path: '/manager', type: 'Manager' },
+  { id: '7', name: 'Learn', path: '/spaced-repetition', type: 'SpacedRepetition' },
+];
+
 const PageManager = ({ pages, setPages }) => {
   const [newPageName, setNewPageName] = useState('');
   const [newPagePath, setNewPagePath] = useState('');
@@ -145,12 +155,43 @@ const PageManager = ({ pages, setPages }) => {
 
   const moveUp = (index) => movePage(index, -1);
   const moveDown = (index) => movePage(index, 1);
+
+  const resetPages = () => {
+    if (!window.confirm('Khôi phục cấu trúc trang về mặc định?')) {
+      return;
+    }
+
+    localStorage.removeItem('dashboard_pages');
+    setPages(defaultPages);
+    if (location.pathname !== '/') {
+      navigate('/');
+    }
+  };
+
   return (
     <div>
-      <h2 style={{ display: 'flex', alignItems: 'center', marginTop: 0 }}>
-        🛠️ Quản lý Cấu trúc Trang
-        {loading && <span style={{ marginLeft: '10px', fontSize: '14px', color: '#666' }}>⏳ Đang xử lý...</span>}
-      </h2>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+        <h2 style={{ display: 'flex', alignItems: 'center', marginTop: 0 }}>
+          🛠️ Quản lý Cấu trúc Trang
+          {loading && <span style={{ marginLeft: '10px', fontSize: '14px', color: '#666' }}>⏳ Đang xử lý...</span>}
+        </h2>
+        <button
+          type="button"
+          onClick={resetPages}
+          disabled={loading}
+          style={{
+            padding: '8px 14px',
+            background: loading ? '#cbd5e1' : '#e2e8f0',
+            color: '#4a5568',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            fontWeight: 'bold'
+          }}
+        >
+          Khôi phục mặc định
+        </button>
+      </div>
       
       {notification.show && (
         <div style={{

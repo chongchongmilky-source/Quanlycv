@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 
+const defaultProjects = [
+  { id: 1, name: 'Website Bán Hàng', description: 'Xây dựng frontend và backend', progress: 75 },
+  { id: 2, name: 'App Mobile Nội bộ', description: 'Quản lý chấm công nhân viên', progress: 30 },
+];
+
 const ProjectManager = () => {
-  const defaultProjects = [
-    { id: 1, name: 'Website Bán Hàng', description: 'Xây dựng frontend và backend', progress: 75 },
-    { id: 2, name: 'App Mobile Nội bộ', description: 'Quản lý chấm công nhân viên', progress: 30 },
-  ];
-  
   const [projects, setProjects] = useState(() => {
     const saved = localStorage.getItem('dashboard_projects');
     return saved ? JSON.parse(saved) : defaultProjects;
@@ -26,9 +26,25 @@ const ProjectManager = () => {
 
   const deleteProject = (id) => setProjects(projects.filter(p => p.id !== id));
 
+  const resetProjects = () => {
+    if (window.confirm('Khôi phục dự án về mặc định?')) {
+      localStorage.removeItem('dashboard_projects');
+      setProjects(defaultProjects);
+    }
+  };
+
   return (
     <div>
-      <h2 style={{ display: 'flex', alignItems: 'center', marginTop: 0 }}>📁 Quản lý Dự án</h2>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginTop: 0 }}>
+        <h2 style={{ display: 'flex', alignItems: 'center', marginTop: 0 }}>📁 Quản lý Dự án</h2>
+        <button
+          type="button"
+          onClick={resetProjects}
+          style={{ padding: '8px 14px', background: '#e2e8f0', color: '#4a5568', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+        >
+          Khôi phục mặc định
+        </button>
+      </div>
       <form onSubmit={addProject} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px', background: '#f9f9f9', padding: '15px', borderRadius: '8px', maxWidth: '500px' }}>
         <input type="text" placeholder="Tên dự án..." value={newProj.name} onChange={e => setNewProj({...newProj, name: e.target.value})} style={{ padding: '8px' }} />
         <input type="text" placeholder="Mô tả ngắn..." value={newProj.description} onChange={e => setNewProj({...newProj, description: e.target.value})} style={{ padding: '8px' }} />
