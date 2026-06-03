@@ -37,6 +37,9 @@ const S = {
   badge: (meta) => ({ padding: '2px 10px', borderRadius: '20px', fontSize: '11.5px', fontWeight: 600, background: meta.bg, color: meta.color, whiteSpace: 'nowrap' }),
   iconBtn: (c) => ({ padding: '5px 9px', background: c + '15', border: `1px solid ${c}30`, color: c, borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }),
   meta: { fontSize: '12px', color: '#a0aec0', display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '6px', alignItems: 'center' },
+  editInput: { flex: 1, minWidth: '200px', padding: '6px 10px', border: '1px solid #4299e1', borderRadius: '6px', fontSize: '12px', outline: 'none', background: '#fff', color: '#2d3748' },
+  editBtn: { padding: '4px 10px', background: '#4299e1', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 600 },
+  cancelBtn: { padding: '4px 10px', background: '#e2e8f0', color: '#4a5568', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 600 },
 };
 
 export default function BugManager() {
@@ -45,7 +48,6 @@ export default function BugManager() {
     if (saved) return JSON.parse(saved).map(b => ({ reporter: '', steps: '', note: '', createdAt: '', status: b.status || 'Chưa sửa', ...b }));
     return defaultBugs;
   });
-
   useEffect(() => {
     localStorage.setItem('dashboard_bugs', JSON.stringify(bugs));
   }, [bugs]);
@@ -66,6 +68,8 @@ export default function BugManager() {
   const [search, setSearch] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [expandId, setExpandId] = useState(null);
+  const [editNoteId, setEditNoteId] = useState(null);
+  const [editNoteText, setEditNoteText] = useState('');
 
   const add = () => {
     if (!form.title.trim()) return;
@@ -92,8 +96,7 @@ export default function BugManager() {
       const updated = { ...prev };
       delete updated[id];
       return updated;
-    });
-    setDeleteConfirm(null);
+    });    setDeleteConfirm(null);
   };
 
   const changeStatus = (id, status) => {
@@ -102,6 +105,17 @@ export default function BugManager() {
       updates.completedAt = new Date().toISOString().slice(0, 16).replace('T', ' ');
     }
     setBugs(bugs.map(b => b.id === id ? { ...b, ...updates } : b));
+  };
+
+  const updateNote = (id) => {
+    setBugs(bugs.map(b => b.id === id ? { ...b, note: editNoteText } : b));
+    setEditNoteId(null);
+    setEditNoteText('');
+  };
+
+  const startEditNote = (bug) => {
+    setEditNoteId(bug.id);
+    setEditNoteText(bug.note || '');
   };
 
   const handleImageUpload = (bugId, file, type) => {
@@ -131,8 +145,7 @@ export default function BugManager() {
 
   let visible = bugs.filter(b => {
     const ms = filterSev === 'Tất cả' || b.severity === filterSev;
-    const mst = filterStatus === 'Tất cả' || b.status === filterStatus;
-    const mq = !search || b.title.toLowerCase().includes(search.toLowerCase());
+    const mst = filterStatus === 'Tất cả' || b.status === filterStatus;    const mq = !search || b.title.toLowerCase().includes(search.toLowerCase());
     return ms && mst && mq;
   });
 
@@ -181,8 +194,7 @@ export default function BugManager() {
             </div>
             <div>
               <label style={S.formLabel}>Người báo</label>
-              <input style={S.input} placeholder="Tên người phát hiện..." value={form.reporter} onChange={e => setForm({ ...form, reporter: e.target.value })} />
-            </div>
+              <input style={S.input} placeholder="Tên người phát hiện..." value={form.reporter} onChange={e => setForm({ ...form, reporter: e.target.value })} />            </div>
             <div style={{ gridColumn: '1 / -1' }}>
               <label style={S.formLabel}>Các bước tái hiện</label>
               <textarea style={S.textarea} placeholder="1. Mở trang... 2. Click vào... 3. Lỗi xuất hiện..." value={form.steps} onChange={e => setForm({ ...form, steps: e.target.value })} />
@@ -231,7 +243,6 @@ export default function BugManager() {
           ))}
         </div>
       </div>
-
       {/* Bug list */}
       {visible.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '48px', color: '#a0aec0' }}>
@@ -281,9 +292,44 @@ export default function BugManager() {
                 )}
               </div>
               {expandId === bug.id && (
-                <div style={{ marginTop: '10px', padding: '12px', background: '#f8fafc', borderRadius: '8px', fontSize: '13px', color: '#4a5568' }}>
-                  {bug.steps && <div style={{ marginBottom: '8px' }}><strong>Các bước tái hiện:</strong><br /><pre style={{ whiteSpace: 'pre-wrap', margin: '4px 0 0', fontFamily: 'inherit' }}>{bug.steps}</pre></div>}
-                  {bug.note && <div><strong>Ghi chú:</strong> {bug.note}</div>}
+                <div style={{ marginTop: '10px', padding: '12px', background: '#f8fafc', borderRadius: '8px', fontSize: '13px', color: '#4a5568' }}>                  {bug.steps && <div style={{ marginBottom: '8px' }}><strong>Các bước tái hiện:</strong><br /><pre style={{ whiteSpace: 'pre-wrap', margin: '4px 0 0', fontFamily: 'inherit' }}>{bug.steps}</pre></div>}
+                  
+                  {/* Ghi chú với chức năng sửa */}
+                  <div style={{ marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '6px' }}>
+                      <strong style={{ fontSize: '12px' }}>Ghi chú:</strong>
+                      {editNoteId === bug.id ? (
+                        <div style={{ display: 'flex', gap: '6px', flex: 1, flexWrap: 'wrap' }}>
+                          <input
+                            style={S.editInput}
+                            value={editNoteText}
+                            onChange={e => setEditNoteText(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') updateNote(bug.id);
+                              if (e.key === 'Escape') setEditNoteId(null);
+                            }}
+                            placeholder="Nhập ghi chú..."
+                            autoFocus
+                          />
+                          <button style={S.editBtn} onClick={() => updateNote(bug.id)}>Lưu</button>
+                          <button style={S.cancelBtn} onClick={() => setEditNoteId(null)}>Hủy</button>
+                        </div>
+                      ) : (
+                        <>
+                          <span style={{ flex: 1, color: bug.note ? '#4a5568' : '#a0aec0', fontStyle: bug.note ? 'normal' : 'italic' }}>
+                            {bug.note || 'Chưa có ghi chú'}
+                          </span>
+                          <button 
+                            style={{ ...S.iconBtn('#4299e1'), padding: '3px 8px', fontSize: '11px' }}
+                            onClick={() => startEditNote(bug)}
+                          >
+                            ✏️ Sửa
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
                   {bugImages[bug.id]?.bugImage && (
                     <div style={{ marginTop: '10px' }}>
                       <div style={{ fontSize: '11px', fontWeight: 600, color: '#4a5568', marginBottom: '6px' }}>📸 Ảnh lỗi:</div>
@@ -295,8 +341,7 @@ export default function BugManager() {
                         >
                           ×
                         </button>
-                      </div>
-                    </div>
+                      </div>                    </div>
                   )}
                   {bugImages[bug.id]?.completedImage && (
                     <div style={{ marginTop: '10px' }}>
