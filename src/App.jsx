@@ -1,0 +1,345 @@
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { renderIcon, removeLeadingEmoji } from './utils/helpers.jsx';
+
+// Import components
+import HomePage from './components/HomePage';
+import TaskManager from './components/TaskManager';
+import BugManager from './components/BugManager';
+import ProjectManager from './components/ProjectManager';
+import SettingsPage from './components/SettingsPage';
+import PageManager from './components/PageManager';
+
+const styles = `
+  @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --sidebar-bg: #0f1623;
+    --sidebar-border: rgba(255,255,255,0.06);
+    --sidebar-hover: rgba(255,255,255,0.05);
+    --sidebar-active: rgba(99,179,237,0.15);
+    --sidebar-active-border: #63b3ed;
+    --text-primary: #e2e8f0;
+    --text-muted: #718096;
+    --accent: #63b3ed;
+    --accent-soft: rgba(99,179,237,0.2);
+    --header-bg: #ffffff;
+    --body-bg: #f0f4f8;
+    --card-bg: #ffffff;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+    --radius: 10px;
+    --font: 'Be Vietnam Pro', sans-serif;
+  }
+
+  body { font-family: var(--font); background: var(--body-bg); }
+
+  .layout { display: flex; min-height: 100vh; width: 100vw; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 240px;
+    min-width: 240px;
+    background: var(--sidebar-bg);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    overflow-y: auto;
+    border-right: 1px solid var(--sidebar-border);
+  }
+
+  .sidebar-brand {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--sidebar-border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand-icon {
+    width: 34px;
+    height: 34px;
+    background: linear-gradient(135deg, #63b3ed, #4299e1);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .brand-text {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 0.02em;
+    line-height: 1.3;
+  }
+
+  .brand-sub {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .sidebar-section-label {
+    padding: 16px 20px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .nav { padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; flex: 1; }
+
+  .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 7px;
+    color: #94a3b8;
+    text-decoration: none;
+    font-size: 13.5px;
+    font-weight: 500;
+    transition: all 0.18s ease;
+    border-left: 2px solid transparent;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .nav-link:hover {
+    background: var(--sidebar-hover);
+    color: var(--text-primary);
+  }
+
+  .nav-link.active {
+    background: var(--sidebar-active);
+    color: var(--accent);
+    border-left-color: var(--sidebar-active-border);
+    font-weight: 600;
+  }
+
+  .nav-icon {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+
+  .sidebar-footer {
+    padding: 16px 20px;
+    border-top: 1px solid var(--sidebar-border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+
+  .user-info { flex: 1; min-width: 0; }
+  .user-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+  .user-role { font-size: 11px; color: var(--text-muted); }
+
+  /* ── Main content ── */
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+  .header {
+    background: var(--header-bg);
+    padding: 0 28px;
+    height: 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-sm);
+    border-bottom: 1px solid #e8edf2;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .header-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #2d3748;
+    letter-spacing: 0.01em;
+  }
+
+  .header-right { display: flex; align-items: center; gap: 12px; }
+
+  .header-badge {
+    padding: 4px 12px;
+    background: #ebf8ff;
+    color: #2b6cb0;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid #bee3f8;
+  }
+
+  .content {
+    padding: 28px;
+    flex: 1;
+    background: var(--body-bg);
+    overflow-y: auto;
+  }
+
+  .not-found {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 60vh;
+    gap: 12px;
+    color: var(--text-muted);
+  }
+
+  .not-found h2 { font-size: 20px; color: #4a5568; }
+  .not-found p { font-size: 14px; }
+`;
+
+const MainLayout = ({ pages, setPages }) => {
+  const location = useLocation();
+
+  const renderComponent = (page) => {
+    switch (page.type) {
+      case 'Home': return <HomePage />;
+      case 'Settings': return <SettingsPage />;
+      case 'Manager': return <PageManager pages={pages} setPages={setPages} />;
+      case 'Tasks': return <TaskManager />;
+      case 'Bugs': return <BugManager />;
+      case 'Projects': return <ProjectManager />;
+      default: return (
+        <div style={{ padding: '20px' }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: 0 }}>
+            {renderIcon(page.type)} {page.name}
+          </h2>
+          <p>Trang nội dung tổng quát.</p>
+        </div>
+      );
+    }
+  };
+
+  const currentPage = pages.find(p => p.path === location.pathname);
+
+  return (
+    <>
+      <style>{styles}</style>
+      <div className="layout">
+        {/* Sidebar */}
+        <aside className="sidebar">
+          <div className="sidebar-brand">
+            <div className="brand-icon">🚀</div>
+            <div>
+              <div className="brand-text">Admin Dashboard</div>
+              <div className="brand-sub">Hệ thống quản lý</div>
+            </div>
+          </div>
+
+          <div className="sidebar-section-label">Điều hướng</div>
+
+          <nav className="nav">
+            {pages.map(page => (
+              <Link
+                key={page.id}
+                to={page.path}
+                className={`nav-link${location.pathname === page.path ? ' active' : ''}`}
+              >
+                <span className="nav-icon">{renderIcon(page.type)}</span>
+                {page.name}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="sidebar-footer">
+            <div className="user-avatar">A</div>
+            <div className="user-info">
+              <div className="user-name">Admin</div>
+              <div className="user-role">Quản trị viên</div>
+            </div>
+          </div>
+        </aside>
+
+        {/* Main */}
+        <div className="main">
+          <header className="header">
+            <span className="header-title">
+              {currentPage ? currentPage.name : 'Hệ thống Quản lý Tổng hợp'}
+            </span>
+            <div className="header-right">
+              <span className="header-badge">● Trực tuyến</span>
+            </div>
+          </header>
+
+          <div className="content">
+            <Routes>
+              {pages.map(page => (
+                <Route key={page.id} path={page.path} element={renderComponent(page)} />
+              ))}
+              <Route path="*" element={
+                <div className="not-found">
+                  <span style={{ fontSize: '48px' }}>🔍</span>
+                  <h2>404 — Trang không tồn tại</h2>
+                  <p>Trang bạn tìm kiếm không tồn tại hoặc đã bị xóa.</p>
+                </div>
+              } />
+            </Routes>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+function App() {
+  const defaultPages = [
+    { id: '1', name: 'Trang chủ', path: '/', type: 'Home' },
+    { id: '2', name: 'Quản lý Công việc', path: '/tasks', type: 'Tasks' },
+    { id: '3', name: 'Quản lý Lỗi', path: '/bugs', type: 'Bugs' },
+    { id: '4', name: 'Quản lý Dự án', path: '/projects', type: 'Projects' },
+    { id: '5', name: 'Cài đặt', path: '/settings', type: 'Settings' },
+    { id: '6', name: 'Quản lý Cấu trúc Trang', path: '/manager', type: 'Manager' },
+  ];
+
+  const [pages, setPages] = useState(() => {
+    const saved = localStorage.getItem('dashboard_pages');
+    let loaded = saved ? JSON.parse(saved) : defaultPages;
+    const cleaned = loaded.map(p => ({ ...p, name: removeLeadingEmoji(p.name) }));
+    localStorage.setItem('dashboard_pages', JSON.stringify(cleaned));
+    return cleaned;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('dashboard_pages', JSON.stringify(pages));
+  }, [pages]);
+
+  return (
+    <Router>
+      <MainLayout pages={pages} setPages={setPages} />
+    </Router>
+  );
+}
+
+export default App;
