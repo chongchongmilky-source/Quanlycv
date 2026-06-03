@@ -36,7 +36,25 @@ const styles = `
 
   body { font-family: var(--font); background: var(--body-bg); }
 
-  .layout { display: flex; min-height: 100vh; width: 100vw; }
+  .layout { display: flex; min-height: 100vh; width: 100vw; position: relative; }
+
+  /* Overlay for mobile */
+  .overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 40;    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .overlay.active {
+    display: block;
+    opacity: 1;
+  }
 
   /* ── Sidebar ── */
   .sidebar {
@@ -50,6 +68,8 @@ const styles = `
     top: 0;
     overflow-y: auto;
     border-right: 1px solid var(--sidebar-border);
+    transition: transform 0.3s ease;
+    z-index: 50;
   }
 
   .sidebar-brand {
@@ -76,8 +96,7 @@ const styles = `
     font-size: 14px;
     font-weight: 700;
     color: var(--text-primary);
-    letter-spacing: 0.02em;
-    line-height: 1.3;
+    letter-spacing: 0.02em;    line-height: 1.3;
   }
 
   .brand-sub {
@@ -126,7 +145,6 @@ const styles = `
     border-left-color: var(--sidebar-active-border);
     font-weight: 600;
   }
-
   .nav-icon {
     width: 20px;
     height: 20px;
@@ -168,7 +186,7 @@ const styles = `
 
   .header {
     background: var(--header-bg);
-    padding: 0 28px;
+    padding: 0 20px;
     height: 60px;
     display: flex;
     justify-content: space-between;
@@ -176,8 +194,29 @@ const styles = `
     box-shadow: var(--shadow-sm);
     border-bottom: 1px solid #e8edf2;
     position: sticky;
-    top: 0;
-    z-index: 10;
+    top: 0;    z-index: 30;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px;
+    color: #2d3748;
+    border-radius: 6px;
+    transition: background 0.2s;
+  }
+
+  .menu-toggle:hover {
+    background: #f7fafc;
   }
 
   .header-title {
@@ -200,12 +239,11 @@ const styles = `
   }
 
   .content {
-    padding: 28px;
+    padding: 20px;
     flex: 1;
     background: var(--body-bg);
     overflow-y: auto;
   }
-
   .not-found {
     display: flex;
     flex-direction: column;
@@ -218,11 +256,91 @@ const styles = `
 
   .not-found h2 { font-size: 20px; color: #4a5568; }
   .not-found p { font-size: 14px; }
+
+  /* ── Mobile Responsive ── */
+  @media (max-width: 768px) {
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      height: 100vh;
+      transform: translateX(-100%);
+      box-shadow: var(--shadow-md);
+    }
+
+    .sidebar.open {
+      transform: translateX(0);
+    }
+
+    .menu-toggle {
+      display: block;
+    }
+
+    .header {
+      padding: 0 16px;
+    }
+
+    .header-title {
+      font-size: 14px;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .content {
+      padding: 16px;
+    }
+
+    .header-badge {      display: none;
+    }
+
+    .brand-text {
+      font-size: 13px;
+    }
+
+    .brand-sub {
+      display: none;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .header-title {
+      font-size: 13px;
+      max-width: 150px;
+    }
+
+    .user-info {
+      display: none;
+    }
+
+    .sidebar-footer {
+      justify-content: center;
+      padding: 12px 20px;
+    }
+
+    .nav-link {
+      font-size: 14px;
+      padding: 10px 12px;
+    }
+  }
 `;
 
 const MainLayout = ({ pages, setPages }) => {
   const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
+  const closeSidebar = () => {
+    setSidebarOpen(false);
+  };
+
+  useEffect(() => {
+    closeSidebar();
+  }, [location.pathname]);
   const renderComponent = (page) => {
     switch (page.type) {
       case 'Home': return <HomePage />;
@@ -247,9 +365,10 @@ const MainLayout = ({ pages, setPages }) => {
   return (
     <>
       <style>{styles}</style>
+      <div className="overlay" onClick={closeSidebar}></div>
       <div className="layout">
         {/* Sidebar */}
-        <aside className="sidebar">
+        <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
           <div className="sidebar-brand">
             <div className="brand-icon">🚀</div>
             <div>
@@ -266,12 +385,12 @@ const MainLayout = ({ pages, setPages }) => {
                 key={page.id}
                 to={page.path}
                 className={`nav-link${location.pathname === page.path ? ' active' : ''}`}
+                onClick={closeSidebar}
               >
                 <span className="nav-icon">{renderIcon(page.type)}</span>
                 {page.name}
               </Link>
-            ))}
-          </nav>
+            ))}          </nav>
 
           <div className="sidebar-footer">
             <div className="user-avatar">A</div>
@@ -285,9 +404,14 @@ const MainLayout = ({ pages, setPages }) => {
         {/* Main */}
         <div className="main">
           <header className="header">
-            <span className="header-title">
-              {currentPage ? currentPage.name : 'Hệ thống Quản lý Tổng hợp'}
-            </span>
+            <div className="header-left">
+              <button className="menu-toggle" onClick={toggleSidebar}>
+                ☰
+              </button>
+              <span className="header-title">
+                {currentPage ? currentPage.name : 'Hệ thống Quản lý Tổng hợp'}
+              </span>
+            </div>
             <div className="header-right">
               <span className="header-badge">● Trực tuyến</span>
             </div>
@@ -315,8 +439,7 @@ const MainLayout = ({ pages, setPages }) => {
 
 function App() {
   const defaultPages = [
-    { id: '1', name: 'Trang chủ', path: '/', type: 'Home' },
-    { id: '2', name: 'Quản lý Công việc', path: '/tasks', type: 'Tasks' },
+    { id: '1', name: 'Trang chủ', path: '/', type: 'Home' },    { id: '2', name: 'Quản lý Công việc', path: '/tasks', type: 'Tasks' },
     { id: '3', name: 'Quản lý Lỗi', path: '/bugs', type: 'Bugs' },
     { id: '4', name: 'Quản lý Dự án', path: '/projects', type: 'Projects' },
     { id: '5', name: 'Cài đặt', path: '/settings', type: 'Settings' },
